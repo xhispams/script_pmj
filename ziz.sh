@@ -84,15 +84,14 @@ detectar_ttl_y_os() {
 
 escaneo_nmap_rapido() {
     local host="$1"
-    local nmap_out
     local temp_xml="temp_fast_scan.xml"
     
     echo -e "${C_BLU}[*] FASE 2: Escaneo SYN rápido de puertos...${C_RST}"
-    echo -e "    ${C_CYN}nmap -sS -sV --version-intensity 0 --open -p- -n -Pn --min-rate 3000 -oX ${temp_xml} ${host}${C_RST}"
+    echo -e "    ${C_CYN}nmap -sS -sV --open -p- -n -Pn --min-rate 3000 -oX ${temp_xml} ${host}${C_RST}"
     echo
 
-    # Escaneo con detección básica de servicios
-    nmap -sS -sV --version-intensity 0 --open -p- -n -Pn --min-rate 3000 -oX "${temp_xml}" "${host}" 2>/dev/null
+    # Escaneo con detección básica de servicios (sin output a pantalla)
+    nmap -sS -sV --open -p- -n -Pn --min-rate 3000 -oX "${temp_xml}" "${host}" > /dev/null 2>&1
 
     # Extraer puertos, servicios y versiones del XML
     if [[ ! -f "${temp_xml}" ]]; then
@@ -130,10 +129,17 @@ escaneo_nmap_rapido() {
         return
     fi
 
+    echo
     echo -e "${C_GRN}[+] Puertos Abiertos con Servicios Detectados:${C_RST}"
-    echo -e "${C_CYN}PUERTO\tSERVICIO\tVERSIÓN${C_RST}"
-    echo -e "${C_CYN}------\t--------\t-------${C_RST}"
-    echo "${ports_info}" | column -t -s $'\t'
+    echo -e "${C_CYN}┌────────┬──────────────┬────────────────────────────────────────┐${C_RST}"
+    echo -e "${C_CYN}│ PUERTO │ SERVICIO     │ VERSIÓN                                │${C_RST}"
+    echo -e "${C_CYN}├────────┼──────────────┼────────────────────────────────────────┤${C_RST}"
+    
+    while IFS=$'\t' read -r port service version; do
+        printf "${C_CYN}│${C_RST} %-6s ${C_CYN}│${C_RST} %-12s ${C_CYN}│${C_RST} %-38s ${C_CYN}│${C_RST}\n" "$port" "$service" "$version"
+    done <<< "$ports_info"
+    
+    echo -e "${C_CYN}└────────┴──────────────┴────────────────────────────────────────┘${C_RST}"
     echo
 
     # Obtener lista CSV de puertos
